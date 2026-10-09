@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="bn"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BP WiFi ZONE</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--red:#d90f1a;--red2:#a80910;--bg:#f6f3f3;--card:#fff;--tx:#241616;--mu:#7a6a6a;--bd:#eadede;--ok:#12a150}
+@media(prefers-color-scheme:dark){:root{--bg:#171111;--card:#241a1a;--tx:#f5eaea;--mu:#b39f9f;--bd:#3a2a2a}}
+*{box-sizing:border-box;margin:0}html,body{height:100%}
+body{background:var(--bg);color:var(--tx);font-family:"Hind Siliguri","Noto Sans Bengali",sans-serif;display:flex;justify-content:center}
+#app{width:100%;max-width:440px;height:100%;display:flex;flex-direction:column;position:relative;overflow:hidden;padding-top:env(safe-area-inset-top,0)}
+header{background:linear-gradient(135deg,var(--red),var(--red2));color:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;font-weight:600;font-size:18px}
+header button{background:none;border:0;color:#fff;font-size:22px;cursor:pointer}
+main{flex:1;overflow-y:auto;padding:14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:12px}
+.hero{background:linear-gradient(135deg,var(--red),var(--red2));color:#fff;border:0;display:flex;align-items:center;gap:12px}
+.av{width:46px;height:46px;border-radius:50%;background:#fff3;display:grid;place-items:center;font-size:22px}
+.tag{margin-left:auto;padding:2px 12px;border-radius:99px;font-size:14px;font-weight:600;background:var(--ok);color:#fff}.tag.due{background:#f5a000;color:#241616}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}.grid2 .card{margin:0;text-align:center}.grid2 small{color:var(--mu);display:block}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+.tile{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 4px;text-align:center;cursor:pointer;font:inherit;color:inherit;font-size:14px}.tile b{display:block;font-size:26px}
+.btn{width:100%;padding:12px;border:0;border-radius:8px;background:var(--red);color:#fff;font:inherit;font-weight:600;font-size:16px;cursor:pointer;margin-top:8px}.btn.ok{background:var(--ok)}.btn.line{background:none;color:var(--red);border:1.5px solid var(--red)}
+.row{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd)}.row:last-child{border:0}.row span:first-child{color:var(--mu)}
+input,select,textarea{width:100%;padding:11px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx);font:inherit;margin-top:6px}
+label{display:block;margin-top:12px;font-weight:500}
+nav{display:flex;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0)}
+nav button{flex:1;padding:8px 0;border:0;background:none;color:var(--mu);font:inherit;font-size:12px;cursor:pointer}nav button b{display:block;font-size:20px}nav button.on{color:var(--red);font-weight:600}
+.big{font-size:30px;font-weight:700}.pk{display:flex;gap:10px;padding:12px;border:1.5px solid var(--bd);border-radius:10px;margin-bottom:8px;cursor:pointer}.pk.on{border-color:var(--red);background:#d90f1a14}.pk span:last-child{margin-left:auto;font-weight:600}
+.login{padding:30px 20px;text-align:center}.logo{width:96px;height:96px;margin:10px auto;border:4px solid var(--red);border-radius:50%;display:grid;place-items:center;font-weight:700;color:var(--red);font-size:20px;line-height:1.1}
+.nt{display:flex;gap:10px}small{color:var(--mu)}
+#toast{position:absolute;left:50%;bottom:80px;transform:translateX(-50%);background:#241616;color:#fff;padding:10px 18px;border-radius:99px;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}#toast.on{opacity:1}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #f5a000;outline-offset:2px}
+</style></head>
+<body><div id="app"></div><div id="toast"></div>
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import{getAuth,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,onAuthStateChanged,updatePassword,reauthenticateWithCredential,EmailAuthProvider}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import{getFirestore,collection,doc,getDoc,setDoc,addDoc,updateDoc,deleteDoc,onSnapshot,query,where,orderBy}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* ===== এখানে আপনার Firebase config বসান (README দেখুন) ===== */
+const cfg={apiKey:"YOUR_API_KEY",authDomain:"YOUR_PROJECT.firebaseapp.com",projectId:"YOUR_PROJECT",appId:"YOUR_APP_ID"};
+/* ============================================================== */
+
+const app=initializeApp(cfg),sec=initializeApp(cfg,"sec"),au=getAuth(app),sa=getAuth(sec),db=getFirestore(app);
+const PK=[[25,520],[30,620],[35,720],[40,820],[50,1020]],pr=k=>(PK.find(p=>p[0]==k)||[0,0])[1];
+const bn=n=>String(n).replace(/\d/g,d=>"০১২৩৪৫৬৭৮৯"[d]),E=s=>String(s??"").replace(/[&<>"]/g,m=>"&#"+m.charCodeAt(0)+";");
+const $=q=>document.querySelector(q),M=new Date().toLocaleDateString("bn-BD",{month:"long",year:"numeric"}),td=()=>new Date().toLocaleDateString("bn-BD");
+const S={role:null,scr:"home",tab:"home",cs:[],my:null,nt:[],cm:[],ed:-1,sel:null,dc:null,ready:false},L=[];
+const toast=t=>{const e=$("#toast");e.textContent=t;e.className="on";setTimeout(()=>e.className="",2200)};
+const mail=id=>id.trim().toLowerCase()+"@bpwifi.app";
+const on=(q,f)=>L.push(onSnapshot(q,s=>{f(s);draw()},()=>toast("ডেটা লোড করা যায়নি")));
+const rows=s=>s.docs.map(d=>({uid:d.id,...d.data()}));
+
+onAuthStateChanged(au,async u=>{
+  L.splice(0).forEach(f=>f());S.my=null;S.cs=[];S.cm=[];S.nt=[];
+  if(!u){S.role=null;S.ready=true;return draw()}
+  try{S.role=(await getDoc(doc(db,"admins",u.uid))).exists()?"admin":"cust"}catch(e){S.role="cust"}
+  S.scr=S.tab=S.role=="admin"?"adm":"home";S.ready=true;
+  on(query(collection(db,"notices"),orderBy("ts","desc")),s=>S.nt=rows(s));
+  if(S.role=="admin"){
+    on(collection(db,"customers"),s=>S.cs=rows(s).sort((a,b)=>a.id>b.id?1:-1));
+    on(query(collection(db,"complaints"),orderBy("ts","desc")),s=>S.cm=rows(s));
+  }else{
+    on(doc(db,"customers",u.uid),s=>S.my=s.exists()?{uid:s.id,...s.data()}:null);
+    on(query(collection(db,"complaints"),where("cid","==",u.uid)),s=>S.cm=rows(s).sort((a,b)=>b.ts-a.ts));
+  }
+  draw();
+});
+
+const go=(s,t)=>{S.scr=s;if(t)S.tab=t;draw()};
+const hd=(t,b)=>`<header>${b?`<button aria-label="পিছনে" onclick="go('${b}')">←</button>`:""}${t}</header>`;
+const rw=(a,b)=>`<div class="row"><span>${a}</span><span>${b}</span></div>`;
+const tg2=c=>`<span class="tag ${c.pay=="paid"?"":"due"}">${c.pay=="paid"?"Paid":"Unpaid"}</span>`;
+const mk=(a,u)=>`<nav>${a.map(([k,i,l])=>`<button class="${S.tab==k?"on":""}" onclick="go('${k}','${k}')"><b>${i}</b>${l}</button>`).join("")}</nav>`;
+const nav=()=>mk([["home","🏠","হোম"],["bill","💳","পেমেন্ট"],["notice","🔔","নোটিশ"],["settings","⚙️","সেটিংস"]]);
+const anav=()=>mk([["adm","👥","গ্রাহক"],["acomp","🛠️","কমপ্লেন"],["anot","📢","নোটিশ"],["aset","⚙️","সেটিংস"]]);
+const noticeList=()=>S.nt.length?S.nt.map(n=>`<div class="card nt"><span style="font-size:22px">📢</span><div style="flex:1"><b>${E(n.t)}</b><br><small>${E(n.d)}</small><br><small>${E(n.b)}</small></div>${S.role=="admin"?`<button class="tile" style="padding:4px 10px;align-self:start" onclick="dn('${n.uid}')">মুছুন</button>`:""}</div>`).join(""):`<div class="card">কোনো নোটিশ নেই।</div>`;
+const pwForm=b=>hd("পাসওয়ার্ড পরিবর্তন",b)+`<main><label>বর্তমান পাসওয়ার্ড<input id="p1" type="password"></label><label>নতুন পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)<input id="p2" type="password"></label><button class="btn" onclick="ap('${b}')">পরিবর্তন করুন</button></main>`;
+const row2=(i,l,s)=>`<div class="row" role="button" tabindex="0" style="cursor:pointer" onclick="go('${s}')"><span style="color:inherit">${i} ${l}</span><span>›</span></div>`;
+const outRow=`<div class="row" role="button" tabindex="0" style="cursor:pointer" onclick="out()"><span style="color:var(--red)">⏻ লগআউট</span></div>`;
+
+const V={
+home:c=>hd("BP WiFi ZONE")+`<main><div class="card hero"><div class="av">👤</div><div><b>${E(c.name)}</b><br>${E(c.id)}</div>${tg2(c)}</div><div class="grid2"><div class="card"><small>প্যাকেজ</small><b>${bn(c.pkg)} Mbps</b></div><div class="card"><small>মাস</small><b>${M}</b></div></div><div class="grid3">${[["📄","বিল দেখুন","details"],["💰","পেমেন্ট","bill"],["📦","প্যাকেজ পরিবর্তন","pkg"],["🔔","নোটিশ","notice"],["🛠️","কমপ্লেন","comp"],["👤","প্রোফাইল","details"]].map(([i,l,s])=>`<button class="tile" onclick="go('${s}','${s=="bill"||s=="notice"?s:"home"}')"><b>${i}</b>${l}</button>`).join("")}</div></main>`+nav(),
+details:c=>hd("কাস্টমার তথ্য","home")+`<main><div class="card" style="text-align:center"><div class="logo">BP<br>WiFi</div><b>${E(c.name)}</b><br>${E(c.id)}</div><div class="card">${rw("ফোন নম্বর",bn(E(c.phone)))}${rw("প্যাকেজ",bn(c.pkg)+" Mbps")}${rw("প্রতিমাসে বিল","৳"+bn(pr(c.pkg)))}${rw("বিলের মাস",M)}${rw("স্ট্যাটাস",tg2(c))}</div></main>`+nav(),
+bill:c=>hd("বিল ও পেমেন্ট")+`<main><div class="card hero" style="flex-direction:column;align-items:flex-start"><small style="color:#fff">মাস: ${M}</small><span class="big">৳ ${bn(pr(c.pkg))}</span></div><div class="card">${rw("পরিশোধিত","৳ "+bn(c.pay=="paid"?pr(c.pkg):0))}${rw("বাকি","৳ "+bn(c.pay=="paid"?0:pr(c.pkg)))}</div>${c.pay=="paid"?`<button class="btn ok" disabled>Paid</button>`:`<div class="card">বিল পরিশোধ করতে bKash/Nagad-এ <b>01855-008436</b> নম্বরে পাঠান। রেফারেন্সে আপনার ID (${E(c.id)}) লিখুন। অ্যাডমিন যাচাই করে Paid করে দেবেন।</div>`}<button class="btn line" onclick="go('hist')">পেমেন্ট হিস্ট্রি</button></main>`+nav(),
+hist:c=>hd("পেমেন্ট হিস্ট্রি","bill")+`<main><div class="card">${(c.hist||[]).length?c.hist.map(h=>rw(E(h.m)+"<br><small>"+E(h.d)+"</small>","৳ "+bn(h.a))).join(""):"এখনো কোনো পেমেন্ট নেই।"}</div></main>`+nav(),
+notice:()=>hd("নোটিশ")+`<main>${noticeList()}</main>`+nav(),
+pkg:c=>hd("প্যাকেজ","home")+`<main>${PK.map(p=>`<div class="pk ${(S.sel||c.pkg)==p[0]?"on":""}" role="button" tabindex="0" onclick="S.sel=${p[0]};draw()"><span>${bn(p[0])} Mbps</span><span>৳${bn(p[1])}</span></div>`).join("")}<button class="btn" onclick="chg()">প্যাকেজ পরিবর্তন করুন</button></main>`+nav(),
+comp:c=>hd("কমপ্লেন","home")+`<main><label>সমস্যার ধরন<select id="ct"><option>ইন্টারনেট ধীরগতি</option><option>সংযোগ নেই</option><option>বিল সংক্রান্ত</option><option>অন্যান্য</option></select></label><label>বিবরণ<textarea id="cd" rows="4" placeholder="সমস্যার বিস্তারিত লিখুন..."></textarea></label><button class="btn" onclick="cmp()">সাবমিট করুন</button>${S.cm.length?`<div class="card" style="margin-top:14px"><b>আপনার কমপ্লেন</b>${S.cm.map(x=>rw(E(x.t)+"<br><small>"+E(x.d)+"</small>",x.st?"সমাধান":"পেন্ডিং")).join("")}</div>`:""}</main>`+nav(),
+settings:()=>hd("সেটিংস")+`<main><div class="card">${row2("👤","আমার প্রোফাইল","details")}${row2("🔑","পাসওয়ার্ড পরিবর্তন","ap")}${outRow}</div></main>`+nav(),
+ap:()=>pwForm(S.role=="admin"?"aset":"settings"),
+adm:()=>hd("অ্যাডমিন প্যানেল")+`<main><div class="grid2"><div class="card"><small>মোট গ্রাহক</small><b>${bn(S.cs.length)} জন</b></div><div class="card"><small>পরিশোধিত</small><b>${bn(S.cs.filter(c=>c.pay=="paid").length)} জন</b></div><div class="card"><small>বাকি টাকা</small><b>৳${bn(S.cs.filter(c=>c.pay!="paid").reduce((a,c)=>a+pr(c.pkg),0))}</b></div><div class="card"><small>আদায়</small><b>৳${bn(S.cs.filter(c=>c.pay=="paid").reduce((a,c)=>a+pr(c.pkg),0))}</b></div></div><button class="btn" style="margin:0 0 12px" onclick="ed(-1)">+ নতুন গ্রাহক</button>${S.cs.map((c,i)=>`<div class="card"><div style="display:flex;gap:8px;align-items:center"><b>${E(c.name)}</b><small>${E(c.id)}</small>${tg2(c)}</div>${rw(bn(E(c.phone)),bn(c.pkg)+" Mbps / ৳"+bn(pr(c.pkg)))}<div class="grid3" style="margin:0"><button class="tile" onclick="tg(${i})">${c.pay=="paid"?"Unpaid করুন":"Paid করুন"}</button><button class="tile" onclick="ed(${i})">এডিট</button><button class="tile" onclick="del(${i})">${S.dc===i?"নিশ্চিত?":"মুছুন"}</button></div></div>`).join("")}<button class="btn line" onclick="nm()">${S.nmc?"নিশ্চিত? সবাইকে Unpaid হবে":"নতুন মাস শুরু (সবাই Unpaid)"}</button></main>`+anav(),
+acust:()=>{const n=S.ed<0,c=n?{id:"",name:"",phone:"",pkg:25}:S.cs[S.ed];return hd(n?"নতুন গ্রাহক":"গ্রাহক এডিট","adm")+`<main><label>নাম<input id="fn" value="${E(c.name)}"></label><label>ফোন<input id="fp" inputmode="tel" value="${E(c.phone)}"></label><label>User ID (ইংরেজি অক্ষর/সংখ্যা)<input id="fi" value="${E(c.id)}" placeholder="BP0002" ${n?"":"readonly"}></label><label>প্যাকেজ<select id="fk">${PK.map(p=>`<option value="${p[0]}" ${p[0]==c.pkg?"selected":""}>${bn(p[0])} Mbps / ৳${bn(p[1])}</option>`).join("")}</select></label>${n?`<label>পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)<input id="fw"></label>`:""}<button class="btn" onclick="sv()">সংরক্ষণ করুন</button></main>`+anav()},
+acomp:()=>hd("কমপ্লেন")+`<main>${S.cm.length?S.cm.map(c=>`<div class="card"><b>${E(c.t)}</b> <span class="tag ${c.st?"":"due"}" style="float:right">${c.st?"সমাধান":"পেন্ডিং"}</span><br><small>${E(c.cn)} (${E(c.cc)}) / ${E(c.d)}</small><p>${E(c.b)}</p><button class="btn ${c.st?"line":"ok"}" onclick="rs('${c.uid}',${c.st?0:1})">${c.st?"আবার খুলুন":"সমাধান হয়েছে"}</button></div>`).join(""):`<div class="card">কোনো কমপ্লেন নেই।</div>`}</main>`+anav(),
+anot:()=>hd("নোটিশ")+`<main><div class="card"><b>নতুন নোটিশ</b><input id="nt" placeholder="শিরোনাম"><textarea id="nb" rows="3" placeholder="বিস্তারিত"></textarea><button class="btn" onclick="pn()">নোটিশ দিন</button></div>${noticeList()}</main>`+anav(),
+aset:()=>hd("সেটিংস")+`<main><div class="card">${row2("🔑","Admin পাসওয়ার্ড পরিবর্তন","ap")}${outRow}</div></main>`+anav()
+};
+const AD=["adm","acust","acomp","anot","aset"];
+function login(){return `<div class="login"><div class="logo">BP<br>WiFi<br><small style="font-size:11px">ZONE</small></div><h2>BP WiFi ZONE</h2><p style="color:var(--mu)">লগইন করুন</p><label style="text-align:left">User ID<input id="u" autocomplete="username" autocapitalize="none"></label><label style="text-align:left">Password<input id="pw" type="password" autocomplete="current-password"></label><button class="btn" onclick="lg()">লগইন</button><p style="margin-top:14px;color:var(--mu);font-size:14px">সাহায্য: 01855-008436, 01776-861213</p></div>`}
+let ls,lt=0;
+function draw(){const a=$("#app"),o=a.querySelector("main");lt=o?o.scrollTop:0;let h;
+  if(!S.ready)h=`<div class="login">লোড হচ্ছে...</div>`;
+  else if(!S.role)h=login();
+  else if(S.role=="admin")h=(V[AD.includes(S.scr)||S.scr=="ap"?S.scr:"adm"])();
+  else if(!S.my)h=hd("BP WiFi ZONE")+`<main><div class="card">আপনার অ্যাকাউন্টের তথ্য পাওয়া যায়নি। অ্যাডমিনের সাথে যোগাযোগ করুন।</div><button class="btn" onclick="out()">লগআউট</button></main>`;
+  else h=(V[AD.includes(S.scr)?"home":S.scr])(S.my);
+  a.innerHTML=h;const m=a.querySelector("main");if(m)m.scrollTop=ls==S.scr?lt:0;ls=S.scr}
+
+const A={
+go,draw,S,
+lg:async()=>{const u=$("#u").value,p=$("#pw").value;if(!u||!p)return toast("ID ও Password দিন");try{await signInWithEmailAndPassword(au,mail(u),p)}catch(e){toast("User ID বা Password ভুল")}},
+out:()=>signOut(au),
+chg:async()=>{if(!S.sel)return toast("একটি প্যাকেজ বেছে নিন");try{await updateDoc(doc(db,"customers",S.my.uid),{pkg:S.sel});S.sel=null;toast("প্যাকেজ পরিবর্তন হয়েছে");go("home","home")}catch(e){toast("পরিবর্তন হয়নি")}},
+cmp:async()=>{const b=$("#cd").value.trim();if(!b)return toast("বিবরণ লিখুন");try{await addDoc(collection(db,"complaints"),{cid:S.my.uid,cn:S.my.name,cc:S.my.id,t:$("#ct").value,b,d:td(),st:0,ts:Date.now()});toast("কমপ্লেন জমা হয়েছে");$("#cd").value=""}catch(e){toast("জমা হয়নি")}},
+ap:async b=>{const u=au.currentUser,n=$("#p2").value;if(n.length<6)return toast("কমপক্ষে ৬ অক্ষর দিন");try{await reauthenticateWithCredential(u,EmailAuthProvider.credential(u.email,$("#p1").value));await updatePassword(u,n);toast("পাসওয়ার্ড পরিবর্তিত হয়েছে");go(b)}catch(e){toast("বর্তমান পাসওয়ার্ড ভুল")}},
+ed:i=>{S.ed=i;go("acust")},
+tg:async i=>{const c=S.cs[i],p=c.pay=="paid",h=c.hist||[];await updateDoc(doc(db,"customers",c.uid),{pay:p?"unpaid":"paid",hist:p?h.filter(x=>x.m!=M):[{m:M,a:pr(c.pkg),d:td()},...h.filter(x=>x.m!=M)]})},
+del:async i=>{if(S.dc===i){await deleteDoc(doc(db,"customers",S.cs[i].uid));S.dc=null;toast("গ্রাহক মুছে ফেলা হয়েছে")}else{S.dc=i;toast("আবার চাপলে মুছে যাবে");draw()}},
+nm:async()=>{if(!S.nmc){S.nmc=1;return draw()}S.nmc=0;for(const c of S.cs)await updateDoc(doc(db,"customers",c.uid),{pay:"unpaid"});toast("নতুন মাস শুরু হয়েছে")},
+sv:async()=>{const name=$("#fn").value.trim(),phone=$("#fp").value.trim(),pkg=+$("#fk").value,n=S.ed<0;
+  if(!name)return toast("নাম লিখুন");
+  try{if(n){const id=$("#fi").value.trim(),w=$("#fw").value;if(!/^[A-Za-z0-9]+$/.test(id)||id.toLowerCase()=="admin")return toast("সঠিক User ID দিন");if(w.length<6)return toast("পাসওয়ার্ড কমপক্ষে ৬ অক্ষর");
+    const r=await createUserWithEmailAndPassword(sa,mail(id),w);await signOut(sa);await setDoc(doc(db,"customers",r.user.uid),{id:id.toUpperCase(),name,phone,pkg,pay:"unpaid",hist:[]})}
+  else await updateDoc(doc(db,"customers",S.cs[S.ed].uid),{name,phone,pkg});
+  toast("সংরক্ষিত হয়েছে");go("adm")}catch(e){toast(e.code=="auth/email-already-in-use"?"এই ID আগে থেকেই আছে":"সংরক্ষণ হয়নি")}},
+rs:(id,st)=>updateDoc(doc(db,"complaints",id),{st}),
+pn:async()=>{const t=$("#nt").value.trim();if(!t)return toast("শিরোনাম লিখুন");await addDoc(collection(db,"notices"),{t,b:$("#nb").value.trim(),d:td(),ts:Date.now()});toast("নোটিশ দেওয়া হয়েছে")},
+dn:id=>deleteDoc(doc(db,"notices",id))
+};
+Object.assign(window,A);
+document.addEventListener("keydown",e=>{if((e.key=="Enter"||e.key==" ")&&e.target.getAttribute("role")=="button"){e.preventDefault();e.target.click()}if(e.key=="Enter"&&e.target.id=="pw")window.lg()});
+draw();
+</script></body></html>
